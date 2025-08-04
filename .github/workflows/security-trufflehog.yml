@@ -1,4 +1,3 @@
-# .github/workflows/security-trufflehog.yml
 name: security-trufflehog
 on:
   push:
@@ -6,8 +5,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  security-events: write   # para subir SARIF
+  contents: read          # leer el repo
+  security-events: write  # subir SARIF a Code-Scanning
 
 jobs:
   trufflehog:
@@ -15,13 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0      # analiza TODO el historial
+          fetch-depth: 0      # escanea TODO el historial git
 
       - name: TruffleHog OSS scan
-        uses: trufflesecurity/trufflehog@v3
+        uses: trufflesecurity/trufflehog@v3.90.3   # <-- tag existente
         with:
-          scan: git           # modo histórico completo
-          extra_args: --only-verified   # opcional, filtra falsos positivos
-          upload-sarif: true  # default=true → sube a Code Scanning
-          sarif_file: trufflehog.sarif  # nombre del artefacto
-          fail: false         # no marcar el job rojo por hallazgos
+          scan: git                 # modo histórico completo
+          upload-sarif: true        # la acción genera y sube trufflehog.sarif
+          extra_args: --only-verified   # opcional: evita falsos positivos
+          fail: false               # no marcar el job rojo por hallazgos
