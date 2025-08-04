@@ -30,7 +30,11 @@ jobs:
         run: echo "sha_short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Build image
-        run: docker build -t $IMAGE_NAME:${{ steps.vars.outputs.sha_short }} .
+        run: |
+            docker build \
+            --build-arg PYTHON=3.11 \
+            -t $IMAGE_NAME:${{ steps.vars.outputs.sha_short }} .
+
 
       - name: Push image
         run: docker push $IMAGE_NAME:${{ steps.vars.outputs.sha_short }}
