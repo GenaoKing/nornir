@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 0        # escanea todo el historial
 
       - name: Install truffleHog
-        run: pip install trufflehog==3.*
+        run: pip install trufflehog==2.2.1
 
       - name: Scan git history
         run: |
