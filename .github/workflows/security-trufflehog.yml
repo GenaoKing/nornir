@@ -14,18 +14,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0        # escanea todo el historial
+          fetch-depth: 0
 
-      - name: Install truffleHog
-        run: pip install trufflehog==2.2.1
-
-      - name: Scan git history
-        run: |
-          trufflehog git --json . > trufflehog.json || true
-
-      - name: Convert to SARIF
-        run: |
-          trufflehog git-sarif trufflehog.json > trufflehog.sarif
+      - name: Run TruffleHog v3
+        uses: trufflesecurity/trufflehog@v3.77.0
+        with:
+          path: .
+          json: true
+          sarif: trufflehog.sarif
+          extra_args: --only-verified
 
       - uses: github/codeql-action/upload-sarif@v3
         with:
