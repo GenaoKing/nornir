@@ -1,0 +1,57 @@
+name: security-trivy
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  # necesario para subir SARIF
+  security-events: write
+  contents: read
+
+jobs:
+  trivy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Cache de PIP para acelerar
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      # Instalar dependencias del proyecto (solo runtime)
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e .
+
+      # Instalar Trivy CLI
+      - name: Install Trivy
+        run: |
+          wget -qO- https://aquasecurity.github.io/trivy-repo/deb/public.gpg \
+            | sudo tee /etc/apt/trusted.gpg.d/trivy.gpg > /dev/null
+          echo "deb [arch=$(dpkg --print-architecture)] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -cs) main" \
+            | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update -qq
+          sudo apt-get install -y trivy
+
+      # SCA + SBOM (dependencias Python)
+      - name: Run Trivy fs
+        run: |
+          trivy fs --format sarif -o trivy.sarif .
+          trivy fs --format cyclonedx -o sbom.json .
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
+
+      # SBOM como artefacto de build
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.json
