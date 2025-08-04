@@ -19,7 +19,5 @@ jobs:
       - name: TruffleHog OSS scan
         uses: trufflesecurity/trufflehog@v3.90.3   # <-- tag existente
         with:
-          scan: git                 # modo histórico completo
-          upload-sarif: true        # la acción genera y sube trufflehog.sarif
-          extra_args: --only-verified   # opcional: evita falsos positivos
-          fail: false               # no marcar el job rojo por hallazgos
+            extra_args: --only-verified   # opcional: evita falsos positivos
+            
