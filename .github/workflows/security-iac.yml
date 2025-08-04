@@ -1,0 +1,29 @@
+name: security-iac
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  security-events: write        # subir SARIF
+
+jobs:
+  trivy-iac:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # instala Trivy (misma vía que ya usaste)
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+          | sudo sh -s -- -b /usr/local/bin
+
+      # escaneo de configuración (Dockerfile, action-workflows, etc.)
+      - name: Run Trivy config
+        run: |
+          trivy config --format sarif -o trivy-iac.sarif .
+
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-iac.sarif
