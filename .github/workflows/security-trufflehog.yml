@@ -1,0 +1,32 @@
+name: security-trufflehog
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trufflehog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # escanea todo el historial
+
+      - name: Install truffleHog
+        run: pip install trufflehog==3.*
+
+      - name: Scan git history
+        run: |
+          trufflehog git --json . > trufflehog.json || true
+
+      - name: Convert to SARIF
+        run: |
+          trufflehog git-sarif trufflehog.json > trufflehog.sarif
+
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trufflehog.sarif
