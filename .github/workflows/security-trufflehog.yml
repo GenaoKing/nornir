@@ -1,27 +1,25 @@
-name: security-secrets
+name: security-trufflehog
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
-permissions:
+permissions:                       # necesarios para code-scanning
   contents: read
   security-events: write
 
 jobs:
-  gitleaks:
+  trufflehog:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0        # escanea TODO el historial
+          fetch-depth: 0            # escanea TODO el historial
 
-      - name: Run Gitleaks (SARIF)
-        uses: gitleaks/gitleaks-action@v2
+      # La acción escanea y sube los hallazgos en SARIF
+      - name: TruffleHog scan
+        uses: trufflesecurity/trufflehog-actions-scan@v0.13.0
         with:
-          args: detect --source . --report-format sarif --report-path gitleaks.sarif --redact
-
-      - name: Upload SARIF to Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: gitleaks.sarif
+          scan: git
+          path: .
+          extra_args: --only-verified   # opcional, ignora falsos positivos
