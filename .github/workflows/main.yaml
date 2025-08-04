@@ -1,25 +1,31 @@
 ---
 name: test nornir
-on: [push,pull_request]
 
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+###########################################################################
+#  LINTERS – se ejecutan solo en Ubuntu / Python 3.9                     #
+###########################################################################
 jobs:
   linters:
     name: linters
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [ '3.9' ]
-        platform: [ubuntu-latest]
-    runs-on: ${{ matrix.platform }}
+        python-version: [ "3.9" ]
+
     steps:
       - uses: actions/checkout@v4
-      - name: Setup python
-        uses: actions/setup-python@v5
+
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          architecture: x64
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - uses: snok/install-poetry@v1
         with:
           version: 1.3.2
           virtualenvs-create: true
@@ -27,43 +33,51 @@ jobs:
 
       - name: Cache Poetry virtualenv
         uses: actions/cache@v4
-        id: cached-poetry-dependencies
+        id: cached-poetry
         with:
           path: .venv
-          key: venv1-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
 
-      - name: Install Dependencies
+      - name: Install deps
+        if: steps.cached-poetry.outputs.cache-hit != 'true'
         run: poetry install
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
 
       - name: Run ruff
         run: make ruff
       - name: Run mypy
         run: make mypy
-      - name: Run sphinx
+      - name: Build docs (sphinx)
         run: |
-          sudo apt-get install pandoc
+          sudo apt-get update -qq
+          sudo apt-get install -y pandoc
           make docs
 
+###########################################################################
+#  TEST MATRIX – Ubuntu, macOS y Windows-2022                             #
+###########################################################################
   pytest:
-    name: Testing on Python ${{ matrix.python-version }} (${{ matrix.platform}})
+    name: Testing on Py ${{ matrix.python-version }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+
     defaults:
       run:
         shell: bash
+
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [ '3.9', '3.10', '3.11', '3.12', '3.13' ]
-        platform: [ubuntu-latest, macos-latest, windows-2022]
-    runs-on: ${{ matrix.platform }}
+        python-version: [ "3.10", "3.11", "3.12" ]
+        os: [ ubuntu-latest, macos-latest, windows-2022 ]
+
     steps:
       - uses: actions/checkout@v4
-      - name: Setup python
-        uses: actions/setup-python@v5
+
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - uses: snok/install-poetry@v1
         with:
           version: 1.3.2
           virtualenvs-create: true
@@ -71,47 +85,41 @@ jobs:
 
       - name: Cache Poetry virtualenv
         uses: actions/cache@v4
-        id: cached-poetry-dependencies
+        id: cached-poetry
         with:
           path: .venv
-          key: venv1-${{ matrix.python-version }}-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
-        if: ${{ matrix.platform != 'windows-2019' }}  # windows hangs if using a cached venv
+          key: venv-${{ matrix.python-version }}-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
 
-      - name: Install Dependencies
-        run: poetry install
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      - name: Install deps
+        if: steps.cached-poetry.outputs.cache-hit != 'true'
+        run: |
+          poetry install
+          # plugins que los tests importan
+          poetry run pip install nornir-utils nornir-jinja2 nornir-napalm
 
+      # ------------------------------------------------------------------
+      # TESTS
+      # ------------------------------------------------------------------
       - name: Run pytest
-        run: make pytest
-        if: ${{ matrix.platform != 'windows-2019' }}
+        env:
+          PYTHONPATH: ./src
+        run: |
+          poetry run pytest -q
 
-      - name: Run pytest
-        run: poetry run pytest --cov=nornir --cov-report=term-missing
-        if: ${{ matrix.platform == 'windows-2019' }}
-
-      - name: Run nbval
+      - name: Run nbval (notebooks)
+        if: runner.os == 'Linux'
+        env:
+          PYTHONPATH: ./src
         run: make nbval
-        if: ${{ matrix.platform != 'windows-2019' }}
 
+      # ------------------------------------------------------------------
+      # Cobertura → Coveralls   (solo Ubuntu + Py 3.11 para no saturar)
+      # ------------------------------------------------------------------
       - name: Report coverage
-        uses: coverallsapp/github-action@v2
-        if: ${{ matrix.platform == 'ubuntu-latest' && matrix.python-version == '3.11' }}
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        env:
+          PYTHONPATH: ./src
+        run: |
+          poetry run pytest --cov=nornir --cov-report=xml
+          poetry run coveralls
 
-#  release:
-#    name: Releasing to pypi
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@master
-#      - name: Build
-#        uses: abatilo/actions-poetry@v1.5.0
-#        with:
-#          python_version: 3.8.0
-#          poetry_version: 1.3.2
-#          working_directory: .
-#          args: build
-#      - name: Publish package
-#        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-#        uses: pypa/gh-action-pypi-publish@master
-#        with:
-#          user: __token__
-#          password: ${{ secrets.pypi_password }}
