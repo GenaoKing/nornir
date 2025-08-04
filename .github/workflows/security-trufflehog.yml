@@ -1,4 +1,4 @@
-name: security-trufflehog
+name: security-secrets
 on:
   push:
     branches: [ main ]
@@ -9,21 +9,19 @@ permissions:
   security-events: write
 
 jobs:
-  trufflehog:
+  gitleaks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0        # escanea TODO el historial
 
-      - name: Run TruffleHog v3
-        uses: trufflesecurity/trufflehog@v3.77.0
+      - name: Run Gitleaks (SARIF)
+        uses: gitleaks/gitleaks-action@v2
         with:
-          path: .
-          json: true
-          sarif: trufflehog.sarif
-          extra_args: --only-verified
+          args: detect --source . --report-format sarif --report-path gitleaks.sarif --redact
 
-      - uses: github/codeql-action/upload-sarif@v3
+      - name: Upload SARIF to Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: trufflehog.sarif
+          sarif_file: gitleaks.sarif
