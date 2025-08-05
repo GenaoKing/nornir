@@ -1,5 +1,5 @@
-ARG PYTHON
-FROM python:${PYTHON}-slim-bookworm
+ARG PYTHON=3.11                       # ← valor por defecto
+FROM python:${PYTHON}-slim-bookworm   # usa el ARG
 
 ENV PATH="/root/.local/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
