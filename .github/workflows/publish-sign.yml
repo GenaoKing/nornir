@@ -48,13 +48,13 @@ jobs:
     - name: Cosign keyless sign
       env:
         COSIGN_EXPERIMENTAL: "true"
-      run: cosign sign --yes --keyless $IMAGE_NAME:${{ steps.vars.outputs.sha_short }}
+      run: cosign sign --yes $IMAGE_NAME:${{ steps.vars.outputs.sha_short }}
 
     # 7. Verify (sanity check)
     - name: Cosign verify
       env:
         COSIGN_EXPERIMENTAL: "true"
-      run: cosign verify --keyless $IMAGE_NAME:${{ steps.vars.outputs.sha_short }}
+      run: cosign verify $IMAGE_NAME:${{ steps.vars.outputs.sha_short }}
 
     # 8. Generate SBOM
     - name: Generate SBOM (Syft)
