@@ -54,7 +54,11 @@ jobs:
     - name: Cosign verify
       env:
         COSIGN_EXPERIMENTAL: "true"
-      run: cosign verify $IMAGE_NAME:${{ steps.vars.outputs.sha_short }}
+      run: |
+        cosign verify \
+        --certificate-identity "repo:GenaoKing/nornir" \
+        --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+        $IMAGE_NAME:${{ steps.vars.outputs.sha_short }}
 
     # 8. Generate SBOM
     - name: Generate SBOM (Syft)
