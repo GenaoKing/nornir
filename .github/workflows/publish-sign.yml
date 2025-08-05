@@ -39,10 +39,10 @@ jobs:
       run: docker push $IMAGE_NAME:${{ steps.vars.outputs.sha_short }}
 
     # 5. Install Cosign
-    - name: Install Cosign CLI
-      run: |
-        curl -sfL https://raw.githubusercontent.com/sigstore/cosign/main/install.sh \
-        | sudo sh -s -- -b /usr/local/bin v2.2.4
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3.5.0   # versión actual
+      with:
+        cosign-release: 'v2.2.4'          # versión actual
 
     # 6. Sign (keyless)
     - name: Cosign keyless sign
