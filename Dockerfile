@@ -15,7 +15,7 @@ COPY pyproject.toml .
 COPY poetry.lock .
 
 # Dependencies change more often, so we break RUN to cache the previous layer
-RUN poetry install --no-interaction
+RUN poetry install --no-interaction --no-root
 
 ARG NAME=nornir
 WORKDIR /${NAME}
